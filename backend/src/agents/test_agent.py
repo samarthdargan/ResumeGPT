@@ -9,12 +9,14 @@ class TestAgent:
             deployment_name=settings.AZURE_OPENAI_DEPLOYMENT_NAME
         )
 
-    async def test_connection(self) -> bool:
+        self.agent = self.client.create_agent(
+            name="Test Agent",
+            system_prompt="You are a helpful test agent.")
+
+    async def test_connection(self):
         try:
-            response = await self.client.chat.complete(
-                messages=[{"role": "system", "content": "Hello, world!"}]
-            )
-            return response is not None
+            response = await self.agent.run("Say Connection Successful if you can hear me.")
+            return {"success": True, "response": response.text}
         except Exception as e:
-            print(f"Connection test failed: {e}")
-            return False
+            return {"success": False, "error": str(e)}
+            
