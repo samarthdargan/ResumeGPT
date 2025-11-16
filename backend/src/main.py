@@ -28,7 +28,9 @@ app.add_middleware(
 )
 
 UPLOAD_DIR = Path("uploads")
+TEMPLATES_UPLOAD_DIR = Path("templates")
 UPLOAD_DIR.mkdir(exist_ok=True)
+TEMPLATES_UPLOAD_DIR.mkdir(exist_ok=True)
 
 @app.get("/")
 async def root():
@@ -105,3 +107,48 @@ async def upload_file(file: UploadFile = File(...)):
                 print(f"🗑️ Cleaned up: {file_path}")
             except Exception as e:
                 logger.warning(f"Failed to delete file: {e}")
+
+@app.post("/process")
+async def process_resume(file: UploadFile = File(...),template_id: int = 1):
+    """Endpoint to process the uploaded resume and convert to LaTeX"""
+    from .agents.latex_converter import LaTeXConverter
+
+    
+    content = await upload_file(file)
+    content = content.get("extraction", {})
+    if not content.get("success", False):
+        return {"success": False, "error": content.get("error", "Unknown upload error")}
+    content = content.get("extracted_data", {})
+    
+    try:
+        latex_file_path = TEMPLATES_UPLOAD_DIR / f"{template_id}.tex"
+        async with aiofiles.open(latex_file_path, mode='r') as f:
+            latex_template = await f.read()
+   
+        converter = LaTeXConverter()
+        latex_result = await converter.convert_to_latex(latex_template=latex_template,json_data=content)
+        
+        if not latex_result.get("success", False):
+            return {
+                     "success": False,
+                     "error": f"Error: {str(e)}",
+                 }
+           
+        else:
+            latex_filename = f"{Path(file.filename).stem}.tex"
+            latex_path = UPLOAD_DIR / latex_filename
+            async with aiofiles.open(latex_path, 'w') as latex_file:
+                await latex_file.write(latex_result.get("latex", ""))
+
+            return {
+                "success": True,
+                "original_filename": file.filename,
+                "extracted_data": content,
+                "latex_filename": latex_filename,
+                "lates_path": str(latex_path),
+                "latex_preview": latex_result.get("latex", "")[:500]  # First 500 chars
+            }
+    except HTTPException:
+        return {"success": False, "error": he.detail}
+    except Exception as e:
+        return {"success": False, "error": f"LaTeX conversion error: {str(e)}"}
