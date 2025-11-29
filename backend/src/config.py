@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     CORS_ORIGINS: Union[List[str], str] = ["*"]
     CLERK_JWKS_URL: Optional[str] = None
+    OPENAI_API_KEY: Optional[str] = None
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
