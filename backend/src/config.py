@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "ResumeGPT"
     VERSION: str = "0.1.0"
     DEBUG: bool = False
-    CORS_ORIGINS: List[str] = ["*"]
+    CORS_ORIGINS: Union[List[str], str] = ["*"]
     CLERK_JWKS_URL: Optional[str] = None
 
     @field_validator("CORS_ORIGINS", mode="before")
