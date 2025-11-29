@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
-from typing import List, Optional
+from typing import List, Optional, Union
+from pydantic import field_validator
 
 class Settings(BaseSettings):
     APP_NAME: str = "ResumeGPT"
@@ -7,6 +8,13 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     CORS_ORIGINS: List[str] = ["*"]
     CLERK_JWKS_URL: Optional[str] = None
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",")]
+        return v
 
     class Config:
         env_file = ".env"
